@@ -32,7 +32,7 @@ const MyComponent = instantiateMyComponent()
 
 // Render the component
 console.log(
-    MyComponent()
+    MyComponent() // Title: Default Title, ID: 0, Text: Default Text
 )
 // This MyComponent function can be used as a JSX component
 ```
