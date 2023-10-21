@@ -21,35 +21,28 @@ function deepMerge<T>(base: T, deepPartial: any): T {
     return result as T
 }
 
+type PartialProps<T, K extends keyof T> =
+    DeepPartial<
+        Pick<T, K>[K] &
+        Omit<T, K> &
+        { component: (props: T) => string }
+    >
+
 interface ComponentInterface<ConfigProps, InstanceProps, ContentProps> {
     config: ConfigProps
     instance: InstanceProps
     content: ContentProps
 }
 
-export function createHigherOrderComponent<ConfigProps, InstanceProps, ContentProps>(
-    component: (props: ComponentInterface<ConfigProps, InstanceProps, ContentProps>) => string,
-    defaults: ComponentInterface<ConfigProps, InstanceProps, ContentProps>,
+function createHigherOrderComponent<ConfigProps, InstanceProps, ContentProps,
+    Props extends ComponentInterface<ConfigProps, InstanceProps, ContentProps>
+>(
+    component: (props: Props) => string,
+    defaults: Props,
 ):
-    (configProps?: DeepPartial<
-        ConfigProps & {
-            instance: InstanceProps
-            content: ContentProps
-            component: typeof component
-        }
-    >) => (instanceProps?: DeepPartial<
-        InstanceProps & {
-            config: ConfigProps
-            content: ContentProps
-            component: typeof component
-        }
-    >) => (contentProps?: DeepPartial<
-        ContentProps & {
-            config: ConfigProps
-            instance: InstanceProps
-            component: typeof component
-        }
-    >) => string {
+    (configProps?: PartialProps<Props, "config">) =>
+        (instanceProps?: PartialProps<Props, "instance">) =>
+            (contentProps?: PartialProps<Props, "content">) => string {
 
     return (configProps) => {
         const {
@@ -93,7 +86,7 @@ export function createHigherOrderComponent<ConfigProps, InstanceProps, ContentPr
                     content: content_ContentProps,
                 })
 
-                const renderComponent = (content_Component || instance_Component || config_Component || component) as typeof component
+                const renderComponent = (content_Component || instance_Component || config_Component || component) as (props: Props) => string
 
                 return renderComponent(props)
             }
