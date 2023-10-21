@@ -13,19 +13,17 @@ function deepMerge<T>(base: T, deepPartial: any): T {
 
     for (const key in deepPartial)
         if (deepPartial.hasOwnProperty(key))
-            if (typeof deepPartial[key] === `object` && deepPartial[key] !== null && !Array.isArray(deepPartial[key]))
-                result[key] = deepMerge(result[key] || {}, deepPartial[key] || {})
+            if (typeof deepPartial[key] === "object" && deepPartial[key] !== null && !Array.isArray(deepPartial[key]))
+                result[key] = deepMerge(result[key], deepPartial[key] || {})
             else if (deepPartial[key] !== undefined)
                 result[key] = deepPartial[key]
 
     return result as T
 }
 
-type PartialProps<T, K extends keyof T> =
-    DeepPartial<
-        Pick<T, K>[K] &
-        Omit<T, K>
-    >
+type Prioritise<T, K extends keyof T> = T[K] & Omit<T, K>
+
+type PartialProps<T, K extends keyof T> = DeepPartial<Prioritise<T, K>>
 
 interface ComponentInterface<ConfigProps = any, InstanceProps = any, ContentProps = any> {
     config: ConfigProps
@@ -33,71 +31,79 @@ interface ComponentInterface<ConfigProps = any, InstanceProps = any, ContentProp
     content: ContentProps
 }
 
-function createHigherOrderComponent<
+export function HigherOrderComponent<
+    Rendered,
+
     Props extends ComponentInterface,
-    Component extends { component?(props: Props): string },
+    Component extends { component(props: Props): Rendered },
 
     Configurable extends (
-        configProps?: PartialProps<Props, "config"> & Component
+        configProps?: PartialProps<Props, "config"> & Partial<Component>
     ) => (
-        instanceProps?: PartialProps<Props, "instance"> & Component
+        instanceProps?: PartialProps<Props, "instance"> & Partial<Component>
     ) => (
-        contentProps?: PartialProps<Props, "content"> & Component
-    ) => string,
+        contentProps?: PartialProps<Props, "content"> & Partial<Component>
+    ) => Rendered,
     Instantiable extends ReturnType<Configurable>,
-    Renderable extends ReturnType<Instantiable>,
+    Renderable extends ReturnType<Instantiable>
 >(
     defaults: Props,
-    component: Component["component"]
-): { configure: Configurable, instantiate: Instantiable, render: Renderable } {
-    const configure = ((configProps) => {
-        const {
-            instance: config_InstanceProps,
-            content: config_ContentProps,
-            component: config_Component,
-            ...config_ConfigProps
-        } = configProps || {} as PartialProps<Props, "config">
-
-        let propsFromConfiguration = deepMerge(defaults, {
-            config: config_ConfigProps,
-            instance: config_InstanceProps,
-            content: config_ContentProps,
-        })
-
-        return (instanceProps) => {
+    component: Component["component"],
+): {
+    configure: Configurable,
+    instantiate: Instantiable,
+    render: Renderable,
+} {
+    const configure = (
+        (configProps) => {
             const {
-                config: instance_ConfigProps,
-                content: instance_ContentProps,
-                component: instance_Component,
-                ...instance_InstanceProps
-            } = instanceProps || {} as PartialProps<Props, "instance">
+                instance: config_InstanceProps,
+                content: config_ContentProps,
+                component: config_Component,
+                ...config_ConfigProps
+            } = configProps || {} as PartialProps<Props, "config">
 
-            let propsFromInstantiation = deepMerge(propsFromConfiguration, {
-                config: instance_ConfigProps,
-                instance: instance_InstanceProps,
-                content: instance_ContentProps,
+            let propsFromConfiguration = deepMerge(defaults, {
+                config: config_ConfigProps,
+                instance: config_InstanceProps,
+                content: config_ContentProps,
             })
 
-            return (contentProps) => {
+            return (instanceProps) => {
                 const {
-                    config: content_ConfigProps,
-                    instance: content_InstanceProps,
-                    component: content_Component,
-                    ...content_ContentProps
-                } = contentProps || {} as PartialProps<Props, "content">
+                    config: instance_ConfigProps,
+                    content: instance_ContentProps,
+                    component: instance_Component,
+                    ...instance_InstanceProps
+                } = instanceProps || {} as PartialProps<Props, "instance">
 
-                let props = deepMerge(propsFromInstantiation, {
-                    config: content_ConfigProps,
-                    instance: content_InstanceProps,
-                    content: content_ContentProps,
+                let propsFromInstantiation = deepMerge(propsFromConfiguration, {
+                    config: instance_ConfigProps,
+                    instance: instance_InstanceProps,
+                    content: instance_ContentProps,
                 })
 
-                const render = (content_Component || instance_Component || config_Component || component) as (props: Props) => string
+                return (contentProps) => {
+                    const {
+                        config: content_ConfigProps,
+                        instance: content_InstanceProps,
+                        component: content_Component,
+                        ...content_ContentProps
+                    } = contentProps || {} as PartialProps<Props, "content">
 
-                return render(props)
+                    let props = deepMerge(propsFromInstantiation, {
+                        config: content_ConfigProps,
+                        instance: content_InstanceProps,
+                        content: content_ContentProps,
+                    })
+
+                    const render = (content_Component || instance_Component || config_Component || component) as Component["component"]
+
+                    return render(props)
+                }
             }
         }
-    }) as Configurable
+    ) as Configurable
     const instantiate = configure() as Instantiable
     const render = instantiate() as Renderable
 
