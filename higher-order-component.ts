@@ -24,8 +24,7 @@ function deepMerge<T>(base: T, deepPartial: any): T {
 type PartialProps<T, K extends keyof T> =
     DeepPartial<
         Pick<T, K>[K] &
-        Omit<T, K> &
-        { component: (props: T) => string }
+        Omit<T, K>
     >
 
 interface ComponentInterface<ConfigProps = any, InstanceProps = any, ContentProps = any> {
@@ -34,15 +33,24 @@ interface ComponentInterface<ConfigProps = any, InstanceProps = any, ContentProp
     content: ContentProps
 }
 
-function createHigherOrderComponent<Props extends ComponentInterface>(
-    component: (props: Props) => string,
-    defaults: Props,
-):
-    (configProps?: PartialProps<Props, "config">) =>
-        (instanceProps?: PartialProps<Props, "instance">) =>
-            (contentProps?: PartialProps<Props, "content">) => string {
+function createHigherOrderComponent<
+    Props extends ComponentInterface,
+    Component extends { component?(props: Props): string },
 
-    return (configProps) => {
+    Configurable extends (
+        configProps?: PartialProps<Props, "config"> & Component
+    ) => (
+        instanceProps?: PartialProps<Props, "instance"> & Component
+    ) => (
+        contentProps?: PartialProps<Props, "content"> & Component
+    ) => string,
+    Instantiable extends ReturnType<Configurable>,
+    Renderable extends ReturnType<Instantiable>,
+>(
+    defaults: Props,
+    component: Component["component"]
+): { configure: Configurable, instantiate: Instantiable, render: Renderable } {
+    const configure = ((configProps) => {
         const {
             instance: config_InstanceProps,
             content: config_ContentProps,
@@ -50,7 +58,7 @@ function createHigherOrderComponent<Props extends ComponentInterface>(
             ...config_ConfigProps
         } = configProps || {} as PartialProps<Props, "config">
 
-        let props = deepMerge(defaults, {
+        let propsFromConfiguration = deepMerge(defaults, {
             config: config_ConfigProps,
             instance: config_InstanceProps,
             content: config_ContentProps,
@@ -64,7 +72,7 @@ function createHigherOrderComponent<Props extends ComponentInterface>(
                 ...instance_InstanceProps
             } = instanceProps || {} as PartialProps<Props, "instance">
 
-            props = deepMerge(props, {
+            let propsFromInstantiation = deepMerge(propsFromConfiguration, {
                 config: instance_ConfigProps,
                 instance: instance_InstanceProps,
                 content: instance_ContentProps,
@@ -78,16 +86,20 @@ function createHigherOrderComponent<Props extends ComponentInterface>(
                     ...content_ContentProps
                 } = contentProps || {} as PartialProps<Props, "content">
 
-                props = deepMerge(props, {
+                let props = deepMerge(propsFromInstantiation, {
                     config: content_ConfigProps,
                     instance: content_InstanceProps,
                     content: content_ContentProps,
                 })
 
-                const renderComponent = (content_Component || instance_Component || config_Component || component) as (props: Props) => string
+                const render = (content_Component || instance_Component || config_Component || component) as (props: Props) => string
 
-                return renderComponent(props)
+                return render(props)
             }
         }
-    }
+    }) as Configurable
+    const instantiate = configure() as Instantiable
+    const render = instantiate() as Renderable
+
+    return { configure, instantiate, render }
 }
