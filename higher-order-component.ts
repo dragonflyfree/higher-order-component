@@ -34,7 +34,7 @@ interface ComponentInterface<ConfigProps = any, InstanceProps = any, ContentProp
 export function HigherOrderComponent<
     Rendered,
 
-    Props extends ComponentInterface,
+    Props extends Partial<ComponentInterface>,
     Component extends { component(props: Props): Rendered },
 
     Configurable extends (
