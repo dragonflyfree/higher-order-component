@@ -71,7 +71,7 @@ export function HigherOrderComponent<
             }
 
             let propsFromConfiguration = deepMerge(defaults, {
-                config: config_ConfigPropsAndExtendedProps,
+                config: config_ConfigProps,
                 instance: config_InstanceProps,
                 content: config_ContentProps,
                 ...config_ExtendedProps
