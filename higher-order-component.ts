@@ -37,22 +37,20 @@ export function HigherOrderComponent<
     Props extends Partial<ComponentInterface>,
     Component extends { component(props: Props): Rendered },
 
-    Configurable extends (
-        configProps?: PartialProps<Props, "config"> & Partial<Component>
-    ) => (
-        instanceProps?: PartialProps<Props, "instance"> & Partial<Component>
-    ) => (
-        contentProps?: PartialProps<Props, "content"> & Partial<Component>
-    ) => Rendered,
+    Configurable extends
+    (configProps?: PartialProps<Props, "config"> & Partial<Component>) =>
+        (instanceProps?: PartialProps<Props, "instance"> & Partial<Component>) =>
+            (contentProps?: PartialProps<Props, "content"> & Partial<Component>) =>
+                Rendered,
     Instantiable extends ReturnType<Configurable>,
     Renderable extends ReturnType<Instantiable>
 >(
     defaults: Props,
-    component: Component["component"],
+    component: Component["component"]
 ): {
-    configure: Configurable,
-    instantiate: Instantiable,
-    render: Renderable,
+    configure: Configurable
+    instantiate: Instantiable
+    render: Renderable
 } {
     const configure = (
         (configProps) => {
@@ -60,13 +58,23 @@ export function HigherOrderComponent<
                 instance: config_InstanceProps,
                 content: config_ContentProps,
                 component: config_Component,
-                ...config_ConfigProps
+                ...config_ConfigPropsAndExtendedProps
             } = configProps || {} as PartialProps<Props, "config">
 
+            const config_ExtendedProps = {} as any
+            const config_ConfigProps = {} as any
+            for (const key in config_ConfigPropsAndExtendedProps) {
+                if (defaults.hasOwnProperty(key))
+                    config_ExtendedProps[key] = config_ConfigPropsAndExtendedProps[key]
+                else
+                    config_ConfigProps[key] = config_ConfigPropsAndExtendedProps[key]
+            }
+
             let propsFromConfiguration = deepMerge(defaults, {
-                config: config_ConfigProps,
+                config: config_ConfigPropsAndExtendedProps,
                 instance: config_InstanceProps,
                 content: config_ContentProps,
+                ...config_ExtendedProps
             })
 
             return (instanceProps) => {
@@ -74,13 +82,23 @@ export function HigherOrderComponent<
                     config: instance_ConfigProps,
                     content: instance_ContentProps,
                     component: instance_Component,
-                    ...instance_InstanceProps
+                    ...instance_InstancePropsAndExtendedProps
                 } = instanceProps || {} as PartialProps<Props, "instance">
+
+                const instance_ExtendedProps = {} as any
+                const instance_InstanceProps = {} as any
+                for (const key in instance_InstancePropsAndExtendedProps) {
+                    if (defaults.hasOwnProperty(key))
+                        instance_ExtendedProps[key] = instance_InstancePropsAndExtendedProps[key]
+                    else
+                        instance_InstanceProps[key] = instance_InstancePropsAndExtendedProps[key]
+                }
 
                 let propsFromInstantiation = deepMerge(propsFromConfiguration, {
                     config: instance_ConfigProps,
                     instance: instance_InstanceProps,
                     content: instance_ContentProps,
+                    ...instance_ExtendedProps
                 })
 
                 return (contentProps) => {
@@ -88,13 +106,23 @@ export function HigherOrderComponent<
                         config: content_ConfigProps,
                         instance: content_InstanceProps,
                         component: content_Component,
-                        ...content_ContentProps
+                        ...content_ContentPropsAndExtendedProps
                     } = contentProps || {} as PartialProps<Props, "content">
+
+                    const content_ExtendedProps = {} as any
+                    const content_ContentProps = {} as any
+                    for (const key in content_ContentPropsAndExtendedProps) {
+                        if (defaults.hasOwnProperty(key))
+                            content_ExtendedProps[key] = content_ContentPropsAndExtendedProps[key]
+                        else
+                            content_ContentProps[key] = content_ContentPropsAndExtendedProps[key]
+                    }
 
                     let props = deepMerge(propsFromInstantiation, {
                         config: content_ConfigProps,
                         instance: content_InstanceProps,
                         content: content_ContentProps,
+                        ...content_ExtendedProps
                     })
 
                     const render = (content_Component || instance_Component || config_Component || component) as Component["component"]
