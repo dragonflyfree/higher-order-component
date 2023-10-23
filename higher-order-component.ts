@@ -25,10 +25,17 @@ type Prioritise<T, K extends keyof T> = T[K] & Omit<T, K>
 
 type PartialProps<T, K extends keyof T> = DeepPartial<Prioritise<T, K>>
 
+import { Children } from "@kitajs/html"
 interface ComponentInterface<ConfigProps = any, InstanceProps = any, ContentProps = any> {
     config: ConfigProps
     instance: InstanceProps
+
+    // TODO: content is redundant due to `Props extends Partial<ComponentInterface>`,
+    // can extend with whatever props I want, which are available as first class props
+    // to render function caller, which is what content is meant to be for
     content: ContentProps
+
+    children: Children
 }
 
 export function HigherOrderComponent<
