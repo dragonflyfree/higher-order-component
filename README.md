@@ -7,7 +7,7 @@ A generic typescript utility function for creating a higher order (JSX) componen
 // configure: function to configure the component, returns instantiate function
 // instantiate: function to instantiate the component, returns render function
 // render: function to render the component, returns string
-const { configure, instantiate, render } = createHigherOrderComponent(
+const { configure, instantiate, render } = HigherOrderComponent(
     {
         config: { title: `Default Title` },
         instance: { id: 0 } as { id: number | string },
