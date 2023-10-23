@@ -1,5 +1,5 @@
 # higher-order-component
-A generic typescript utility function for creating a higher order (JSX) component, with the ability to partially override default values for each successive function call.
+A generic typescript utility function for creating a higher order (JSX) component, with the ability to partially override default values for each successive function call. Designed to work with [@kitajs/html](https://github.com/kitajs/html)
 
 ```ts
 // Create a higher order component (with default values)
