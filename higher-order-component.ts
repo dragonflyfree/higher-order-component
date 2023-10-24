@@ -23,8 +23,6 @@ function deepMerge<T>(base: T, deepPartial: any): T {
 
 type Prioritise<T, K extends keyof T> = T[K] & Omit<T, K>
 
-type PartialProps<T, K extends keyof T> = DeepPartial<Prioritise<T, K>>
-
 import { Children } from "@kitajs/html"
 interface ComponentInterface<ConfigProps = any, InstanceProps = any> {
     config: ConfigProps
@@ -35,21 +33,19 @@ interface ComponentInterface<ConfigProps = any, InstanceProps = any> {
 }
 
 export function HigherOrderComponent<
-    Rendered,
-
     Props extends Partial<ComponentInterface>,
-    Component extends { component(props: Props): Rendered },
+    Callback extends (props: Props) => any,
 
     Configurable extends
-    (configProps?: PartialProps<Props, "config"> & Partial<Component>) =>
-        (instanceProps?: PartialProps<Props, "instance"> & Partial<Component>) =>
-            (renderProps?: DeepPartial<Props> & Partial<Component>) =>
-                Rendered,
+    (configProps?: DeepPartial<Prioritise<Props, "config">> & Partial<{ component: Callback }>) =>
+        (instanceProps?: DeepPartial<Prioritise<Props, "instance">> & Partial<{ component: Callback }>) =>
+            (renderProps?: DeepPartial<Props> & Partial<{ component: Callback }>) =>
+                ReturnType<Callback>,
     Instantiable extends ReturnType<Configurable>,
     Renderable extends ReturnType<Instantiable>
 >(
     defaults: Props,
-    component: Component["component"]
+    component: Callback
 ): {
     configure: Configurable
     instantiate: Instantiable
@@ -61,7 +57,7 @@ export function HigherOrderComponent<
                 instance: config_InstanceProps,
                 component: config_Component,
                 ...config_ConfigPropsAndOtherProps
-            } = configProps || {} as PartialProps<Props, "config">
+            } = configProps || {} as DeepPartial<Prioritise<Props, "config">> & Partial<{ component: Callback }>
 
             const config_OtherProps = {} as any
             const config_ConfigProps = {} as any
@@ -83,7 +79,7 @@ export function HigherOrderComponent<
                     config: instance_ConfigProps,
                     component: instance_Component,
                     ...instance_InstancePropsAndOtherProps
-                } = instanceProps || {} as PartialProps<Props, "instance">
+                } = instanceProps || {} as DeepPartial<Prioritise<Props, "instance">> & Partial<{ component: Callback }>
 
                 const instance_OtherProps = {} as any
                 const instance_InstanceProps = {} as any
@@ -104,11 +100,11 @@ export function HigherOrderComponent<
                     const {
                         component: render_Component,
                         ...render_Props
-                    } = renderProps || {} as DeepPartial<Props> & Partial<Component>
+                    } = renderProps || {} as DeepPartial<Props> & Partial<{ component: Callback }>
 
                     let props = deepMerge(propsFromInstantiation, render_Props)
 
-                    const render = (render_Component || instance_Component || config_Component || component) as Component["component"]
+                    const render = (render_Component || instance_Component || config_Component || component) as Callback
 
                     return render(props)
                 }
