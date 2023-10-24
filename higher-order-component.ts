@@ -26,14 +26,10 @@ type Prioritise<T, K extends keyof T> = T[K] & Omit<T, K>
 type PartialProps<T, K extends keyof T> = DeepPartial<Prioritise<T, K>>
 
 import { Children } from "@kitajs/html"
-interface ComponentInterface<ConfigProps = any, InstanceProps = any, ContentProps = any> {
+interface ComponentInterface<ConfigProps = any, InstanceProps = any> {
     config: ConfigProps
     instance: InstanceProps
-
-    // TODO: content is redundant due to `Props extends Partial<ComponentInterface>`,
-    // can extend with whatever props I want, which are available as first class props
-    // to render function caller, which is what content is meant to be for
-    content: ContentProps
+    misc: any
 
     children: Children
 }
@@ -47,7 +43,7 @@ export function HigherOrderComponent<
     Configurable extends
     (configProps?: PartialProps<Props, "config"> & Partial<Component>) =>
         (instanceProps?: PartialProps<Props, "instance"> & Partial<Component>) =>
-            (contentProps?: PartialProps<Props, "content"> & Partial<Component>) =>
+            (renderProps?: DeepPartial<Props> & Partial<Component>) =>
                 Rendered,
     Instantiable extends ReturnType<Configurable>,
     Renderable extends ReturnType<Instantiable>
@@ -63,76 +59,56 @@ export function HigherOrderComponent<
         (configProps) => {
             const {
                 instance: config_InstanceProps,
-                content: config_ContentProps,
                 component: config_Component,
-                ...config_ConfigPropsAndExtendedProps
+                ...config_ConfigPropsAndOtherProps
             } = configProps || {} as PartialProps<Props, "config">
 
-            const config_ExtendedProps = {} as any
+            const config_OtherProps = {} as any
             const config_ConfigProps = {} as any
-            for (const key in config_ConfigPropsAndExtendedProps) {
+            for (const key in config_ConfigPropsAndOtherProps) {
                 if (defaults.hasOwnProperty(key))
-                    config_ExtendedProps[key] = config_ConfigPropsAndExtendedProps[key]
+                    config_OtherProps[key] = config_ConfigPropsAndOtherProps[key]
                 else
-                    config_ConfigProps[key] = config_ConfigPropsAndExtendedProps[key]
+                    config_ConfigProps[key] = config_ConfigPropsAndOtherProps[key]
             }
 
             let propsFromConfiguration = deepMerge(defaults, {
                 config: config_ConfigProps,
                 instance: config_InstanceProps,
-                content: config_ContentProps,
-                ...config_ExtendedProps
+                ...config_OtherProps
             })
 
             return (instanceProps) => {
                 const {
                     config: instance_ConfigProps,
-                    content: instance_ContentProps,
                     component: instance_Component,
-                    ...instance_InstancePropsAndExtendedProps
+                    ...instance_InstancePropsAndOtherProps
                 } = instanceProps || {} as PartialProps<Props, "instance">
 
-                const instance_ExtendedProps = {} as any
+                const instance_OtherProps = {} as any
                 const instance_InstanceProps = {} as any
-                for (const key in instance_InstancePropsAndExtendedProps) {
+                for (const key in instance_InstancePropsAndOtherProps) {
                     if (defaults.hasOwnProperty(key))
-                        instance_ExtendedProps[key] = instance_InstancePropsAndExtendedProps[key]
+                        instance_OtherProps[key] = instance_InstancePropsAndOtherProps[key]
                     else
-                        instance_InstanceProps[key] = instance_InstancePropsAndExtendedProps[key]
+                        instance_InstanceProps[key] = instance_InstancePropsAndOtherProps[key]
                 }
 
                 let propsFromInstantiation = deepMerge(propsFromConfiguration, {
                     config: instance_ConfigProps,
                     instance: instance_InstanceProps,
-                    content: instance_ContentProps,
-                    ...instance_ExtendedProps
+                    ...instance_OtherProps
                 })
 
-                return (contentProps) => {
+                return (renderProps) => {
                     const {
-                        config: content_ConfigProps,
-                        instance: content_InstanceProps,
-                        component: content_Component,
-                        ...content_ContentPropsAndExtendedProps
-                    } = contentProps || {} as PartialProps<Props, "content">
+                        component: render_Component,
+                        ...render_Props
+                    } = renderProps || {} as DeepPartial<Props> & Partial<Component>
 
-                    const content_ExtendedProps = {} as any
-                    const content_ContentProps = {} as any
-                    for (const key in content_ContentPropsAndExtendedProps) {
-                        if (defaults.hasOwnProperty(key))
-                            content_ExtendedProps[key] = content_ContentPropsAndExtendedProps[key]
-                        else
-                            content_ContentProps[key] = content_ContentPropsAndExtendedProps[key]
-                    }
+                    let props = deepMerge(propsFromInstantiation, render_Props)
 
-                    let props = deepMerge(propsFromInstantiation, {
-                        config: content_ConfigProps,
-                        instance: content_InstanceProps,
-                        content: content_ContentProps,
-                        ...content_ExtendedProps
-                    })
-
-                    const render = (content_Component || instance_Component || config_Component || component) as Component["component"]
+                    const render = (render_Component || instance_Component || config_Component || component) as Component["component"]
 
                     return render(props)
                 }
