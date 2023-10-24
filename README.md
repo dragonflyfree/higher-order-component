@@ -3,9 +3,12 @@ A generic typescript utility function for creating a higher order (JSX) componen
 
 ## Examples
 
+❗ The HTML produced by kitajs has no indentation nor whitespace; I've manually prettified the output HTML in this document for readability.
+
 ### Nothing
 
 **Definition**
+`Nothing` is a higher order component that accepts no properties and returns an empty JSX fragment.
 ```tsx
 // nothing.tsx
 import Html from "@kitajs/html"
@@ -21,8 +24,6 @@ HigherOrderComponent
         () => <></>
     )
 ```
-`Nothing` is a higher order component that accepts no properties and returns an empty JSX fragment.
-
 **Usage**
 ```tsx
 // index.tsx
@@ -31,6 +32,35 @@ import { Nothing } from "./nothing"
 
 console.log( <Nothing /> )
 ```
-Output:
+**Output**
+```
+```
+
+### 
+
+**Definition**
+``
+```tsx
+export const {
+    configure: configure,
+    instantiate: instantiate,
+    render: 
+} =
+
+HigherOrderComponent
+    (
+        {},
+        props => <></>
+    )
+```
+**Usage**
+```tsx
+// index.tsx
+import Html from "@kitajs/html"
+import {  } from "./"
+
+console.log
+```
+**Output**
 ```
 ```
