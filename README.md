@@ -21,7 +21,7 @@ HigherOrderComponent
     )
 ```
 `Nothing` is a higher order component that accepts no properties and returns an empty JSX fragment.
-### Usage
+#### Usage
 ```tsx
 // index.tsx
 import Html from "@kitajs/html"
@@ -29,4 +29,6 @@ import { Nothing } from "./nothing"
 
 console.log( <Nothing /> )
 ```
-Output: ``
+Output:
+```
+```
