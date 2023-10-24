@@ -8,6 +8,7 @@ A generic typescript utility function for creating a higher order (JSX) componen
 ### Nothing
 
 **Definition**
+
 `Nothing` is a higher order component that accepts no properties and returns an empty JSX fragment.
 ```tsx
 // nothing.tsx
@@ -24,7 +25,9 @@ HigherOrderComponent
         () => <></>
     )
 ```
+
 **Usage**
+
 ```tsx
 // index.tsx
 import Html from "@kitajs/html"
@@ -32,14 +35,18 @@ import { Nothing } from "./nothing"
 
 console.log( <Nothing /> )
 ```
+
 **Output**
+
 ```
 ```
 
 ### 
 
 **Definition**
+
 ``
+
 ```tsx
 export const {
     configure: configure,
@@ -53,7 +60,9 @@ HigherOrderComponent
         props => <></>
     )
 ```
+
 **Usage**
+
 ```tsx
 // index.tsx
 import Html from "@kitajs/html"
@@ -61,6 +70,8 @@ import {  } from "./"
 
 console.log
 ```
+
 **Output**
+
 ```
 ```
