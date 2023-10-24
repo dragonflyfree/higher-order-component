@@ -21,7 +21,10 @@ export const {
 
 HigherOrderComponent
     (
+        // defaults
         {},
+
+        // base implementation
         () => <></>
     )
 ```
@@ -56,8 +59,11 @@ export const {
 
 HigherOrderComponent
     (
+        // defaults
         {},
-        props => <></>
+
+        // base implementation
+        () => <></>
     )
 ```
 
