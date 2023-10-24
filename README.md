@@ -4,7 +4,7 @@ A generic typescript utility function for creating a higher order (JSX) componen
 ## Examples
 
 ### Nothing
-#### Definition
+- Definition
 ```tsx
 // nothing.tsx
 import Html from "@kitajs/html"
@@ -21,7 +21,7 @@ HigherOrderComponent
     )
 ```
 `Nothing` is a higher order component that accepts no properties and returns an empty JSX fragment.
-#### Usage
+- Usage
 ```tsx
 // index.tsx
 import Html from "@kitajs/html"
