@@ -1,13 +1,3 @@
-type DeepPartial<T> = {
-    [P in keyof T]?: T[P] extends Array<infer U>
-    ? DeepPartialArray<U>
-    : T[P] extends object
-    ? DeepPartial<T[P]>
-    : T[P]
-}
-
-interface DeepPartialArray<T> extends Array<DeepPartial<T>> { }
-
 function deepMerge<T>(base: T, deepPartial: any): T {
     const result: any = { ...base }
 
@@ -21,25 +11,21 @@ function deepMerge<T>(base: T, deepPartial: any): T {
     return result as T
 }
 
-type Prioritise<T, K extends keyof T> = T[K] & Omit<T, K>
+type DeepPartial<T> = { [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P] }
 
-import { Children } from "@kitajs/html"
-interface ComponentInterface<ConfigProps = any, InstanceProps = any> {
-    config: ConfigProps
-    instance: InstanceProps
-    misc: any
+type Prioritise<T, K> = K extends keyof T ? T[K] & Omit<T, K> : T
 
-    children: Children
-}
+type ConsumerProps<Props extends Object, Callback extends (props: Props) => any, K = "">
+    = DeepPartial<Prioritise<Props, K>> & { component?: Callback }
 
 export function HigherOrderComponent<
-    Props extends Partial<ComponentInterface>,
+    Props extends Object,
     Callback extends (props: Props) => any,
 
     Configurable extends
-    (configProps?: DeepPartial<Prioritise<Props, "config">> & Partial<{ component: Callback }>) =>
-        (instanceProps?: DeepPartial<Prioritise<Props, "instance">> & Partial<{ component: Callback }>) =>
-            (renderProps?: DeepPartial<Props> & Partial<{ component: Callback }>) =>
+    (configProps?: ConsumerProps<Props, Callback, "config">) =>
+        (instanceProps?: ConsumerProps<Props, Callback, "instance">) =>
+            (renderProps?: ConsumerProps<Props, Callback>) =>
                 ReturnType<Callback>,
     Instantiable extends ReturnType<Configurable>,
     Renderable extends ReturnType<Instantiable>
@@ -52,61 +38,46 @@ export function HigherOrderComponent<
     render: Renderable
 } {
     const configure = (
-        (configProps) => {
-            const {
-                instance: config_InstanceProps,
-                component: config_Component,
-                ...config_ConfigPropsAndOtherProps
-            } = configProps || {} as DeepPartial<Prioritise<Props, "config">> & Partial<{ component: Callback }>
+        (config) => {
+            const { component: configComponent, ...configAndMiscProps } = config || {}
 
-            const config_OtherProps = {} as any
-            const config_ConfigProps = {} as any
-            for (const key in config_ConfigPropsAndOtherProps) {
+            const configMiscProps: any = {}
+            const configProps: any = {}
+            for (const key in configAndMiscProps) {
+                const prop = (configAndMiscProps as Record<string, any>)[key]
+
                 if (defaults.hasOwnProperty(key))
-                    config_OtherProps[key] = config_ConfigPropsAndOtherProps[key]
+                    configMiscProps[key] = prop
                 else
-                    config_ConfigProps[key] = config_ConfigPropsAndOtherProps[key]
+                    configProps[key] = prop
             }
 
-            let propsFromConfiguration = deepMerge(defaults, {
-                config: config_ConfigProps,
-                instance: config_InstanceProps,
-                ...config_OtherProps
-            })
+            let propsFromConfiguration = deepMerge(defaults,
+                { config: configProps, ...configMiscProps }
+            )
 
-            return (instanceProps) => {
-                const {
-                    config: instance_ConfigProps,
-                    component: instance_Component,
-                    ...instance_InstancePropsAndOtherProps
-                } = instanceProps || {} as DeepPartial<Prioritise<Props, "instance">> & Partial<{ component: Callback }>
+            return (instance) => {
+                const { component: instanceComponent, ...instanceAndMiscProps } = instance || {}
 
-                const instance_OtherProps = {} as any
-                const instance_InstanceProps = {} as any
-                for (const key in instance_InstancePropsAndOtherProps) {
+                const instanceMiscProps: any = {}
+                const instanceProps: any = {}
+                for (const key in instanceAndMiscProps) {
+                    const prop = (instanceAndMiscProps as Record<string, any>)[key]
+
                     if (defaults.hasOwnProperty(key))
-                        instance_OtherProps[key] = instance_InstancePropsAndOtherProps[key]
+                        instanceMiscProps[key] = prop
                     else
-                        instance_InstanceProps[key] = instance_InstancePropsAndOtherProps[key]
+                        instanceProps[key] = prop
                 }
 
-                let propsFromInstantiation = deepMerge(propsFromConfiguration, {
-                    config: instance_ConfigProps,
-                    instance: instance_InstanceProps,
-                    ...instance_OtherProps
-                })
+                let propsFromInstantiation = deepMerge(propsFromConfiguration,
+                    { instance: instanceProps, ...instanceMiscProps }
+                )
 
-                return (renderProps) => {
-                    const {
-                        component: render_Component,
-                        ...render_Props
-                    } = renderProps || {} as DeepPartial<Props> & Partial<{ component: Callback }>
-
-                    let props = deepMerge(propsFromInstantiation, render_Props)
-
-                    const render = (render_Component || instance_Component || config_Component || component) as Callback
-
-                    return render(props)
+                return (render) => {
+                    const { component: renderComponent, ...renderProps } = render || {}
+                    let props = deepMerge(propsFromInstantiation, renderProps)
+                    return (renderComponent || instanceComponent || configComponent || component)(props)
                 }
             }
         }
