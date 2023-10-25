@@ -1,37 +1,34 @@
-function deepMerge<T>(base: T, deepPartial: any): T {
+function deepMerge<T>(base: T, partial: any): T {
     const result: any = { ...base }
 
-    for (const key in deepPartial)
-        if (deepPartial.hasOwnProperty(key))
-            if (typeof deepPartial[key] === "object" && deepPartial[key] !== null && !Array.isArray(deepPartial[key]))
-                result[key] = deepMerge(result[key], deepPartial[key] || {})
-            else if (deepPartial[key] !== undefined)
-                result[key] = deepPartial[key]
+    for (const key in partial)
+        if (partial.hasOwnProperty(key))
+            if (typeof partial[key] === "object" && partial[key] !== null && !Array.isArray(partial[key]))
+                result[key] = deepMerge(result[key], partial[key] || {})
+            else if (partial[key] !== undefined)
+                result[key] = partial[key]
 
     return result as T
 }
 
-type DeepPartial<T> = { [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P] }
+type DeepPartial<T> = { [P in keyof T]?: T[P] extends Record<string, any> ? DeepPartial<T[P]> : T[P] }
 
-type Prioritise<T, K> = K extends keyof T ? T[K] & Omit<T, K> : T
-
-type ConsumerProps<Props extends Object, Callback extends (props: Props) => any, K = "">
-    = DeepPartial<Prioritise<Props, K>> & { component?: Callback }
+type ConsumerProps<Props, Callback> = DeepPartial<Props> & { callback?: Callback }
 
 export function HigherOrderComponent<
-    Props extends Object,
+    Props,
     Callback extends (props: Props) => any,
 
     Configurable extends
-    (configProps?: ConsumerProps<Props, Callback, "config">) =>
-        (instanceProps?: ConsumerProps<Props, Callback, "instance">) =>
-            (renderProps?: ConsumerProps<Props, Callback>) =>
-                ReturnType<Callback>,
+    (config?: ConsumerProps<Props, Callback>)
+        => (instance?: ConsumerProps<Props, Callback>)
+            => (render?: ConsumerProps<Props, Callback> | { props?: ConsumerProps<Props, Callback> })
+                => ReturnType<Callback>,
     Instantiable extends ReturnType<Configurable>,
-    Renderable extends ReturnType<Instantiable>
+    Renderable extends ReturnType<Instantiable>,
 >(
-    defaults: Props,
-    component: Callback
+    defaults: Props extends { props: any } ? never : Props,
+    callback: Callback
 ): {
     configure: Configurable
     instantiate: Instantiable
@@ -39,45 +36,19 @@ export function HigherOrderComponent<
 } {
     const configure = (
         (config) => {
-            const { component: configComponent, ...configAndMiscProps } = config || {}
-
-            const configMiscProps: any = {}
-            const configProps: any = {}
-            for (const key in configAndMiscProps) {
-                const prop = (configAndMiscProps as Record<string, any>)[key]
-
-                if (defaults.hasOwnProperty(key))
-                    configMiscProps[key] = prop
-                else
-                    configProps[key] = prop
-            }
-
-            let propsFromConfiguration = deepMerge(defaults,
-                { config: configProps, ...configMiscProps }
-            )
+            const configureProps = deepMerge({ ...defaults, callback }, config)
 
             return (instance) => {
-                const { component: instanceComponent, ...instanceAndMiscProps } = instance || {}
-
-                const instanceMiscProps: any = {}
-                const instanceProps: any = {}
-                for (const key in instanceAndMiscProps) {
-                    const prop = (instanceAndMiscProps as Record<string, any>)[key]
-
-                    if (defaults.hasOwnProperty(key))
-                        instanceMiscProps[key] = prop
-                    else
-                        instanceProps[key] = prop
-                }
-
-                let propsFromInstantiation = deepMerge(propsFromConfiguration,
-                    { instance: instanceProps, ...instanceMiscProps }
-                )
+                const instantiateProps = deepMerge(configureProps, instance)
 
                 return (render) => {
-                    const { component: renderComponent, ...renderProps } = render || {}
-                    let props = deepMerge(propsFromInstantiation, renderProps)
-                    return (renderComponent || instanceComponent || configComponent || component)(props)
+                    if (render !== undefined && "props" in render)
+                        render = render.props
+
+                    const renderProps = deepMerge(instantiateProps, render)
+                    const { callback, ...props } = renderProps
+
+                    return callback(props as Props)
                 }
             }
         }
