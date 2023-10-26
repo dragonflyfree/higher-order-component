@@ -1,33 +1,16 @@
-function deepMerge<T>(base: T, partial: any): T {
-    const result: any = { ...base }
-
-    for (const key in partial)
-        if (partial.hasOwnProperty(key))
-            if (typeof partial[key] === "object" && partial[key] !== null && !Array.isArray(partial[key]))
-                result[key] = deepMerge(result[key], partial[key] || {})
-            else if (partial[key] !== undefined)
-                result[key] = partial[key]
-
-    return result as T
-}
-
-type DeepPartial<T> = { [P in keyof T]?: T[P] extends Record<string, any> ? DeepPartial<T[P]> : T[P] }
-
-type ConsumerProps<Props, Callback> = DeepPartial<Props> & { callback?: Callback }
-
-export function HigherOrderComponent<
+export function defineComponent<
     Props,
     Callback extends (props: Props) => any,
+    ConsumerProps extends DeepPartial<Props> & { callback?: Callback },
 
     Configurable extends
-    (config?: ConsumerProps<Props, Callback>)
-        => (instance?: ConsumerProps<Props, Callback>)
-            => (render?: ConsumerProps<Props, Callback> | { props?: ConsumerProps<Props, Callback> })
-                => ReturnType<Callback>,
+    (config?: ConsumerProps)
+        => (instance?: ConsumerProps)
+            => (render?: ConsumerProps | { props?: ConsumerProps }) => ReturnType<Callback>,
     Instantiable extends ReturnType<Configurable>,
     Renderable extends ReturnType<Instantiable>,
 >(
-    defaults: Props extends { props: any } ? never : Props,
+    defaults: Props extends { props: any } ? never : Props extends { callback: any } ? never : Props,
     callback: Callback
 ): {
     configure: Configurable
@@ -57,4 +40,19 @@ export function HigherOrderComponent<
     const render = instantiate() as Renderable
 
     return { configure, instantiate, render }
+}
+
+type DeepPartial<T> = { [P in keyof T]?: T[P] extends Record<string, any> ? DeepPartial<T[P]> : T[P] }
+
+function deepMerge<T>(base: T, partial?: Record<string, any>): T {
+    const result: any = { ...base }
+
+    for (const key in partial)
+        if (partial.hasOwnProperty(key))
+            if (typeof partial[key] === "object" && partial[key] !== null && !Array.isArray(partial[key]))
+                result[key] = deepMerge(result[key], partial[key] || {})
+            else if (partial[key] !== undefined)
+                result[key] = partial[key]
+
+    return result as T
 }
